@@ -28,3 +28,10 @@ async function getInputStream(day: string) {
     }
     return request.body;
 }
+
+// very lightweight assert for testing examples
+export function assertEq<T>(expected: T, actual: T, failure_message?: string) {
+    if (expected != actual) {
+        throw Error(`'${expected}' != '${actual}'; ${failure_message}`);
+    }
+}
