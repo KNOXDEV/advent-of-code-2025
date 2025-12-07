@@ -30,7 +30,9 @@ for (const bank of banks) {
     const { largestDigit, digitIndex } = findLargestDigit(digits.slice(0, -1));
 
     // next, find the largest remaining digit
-    const { largestDigit: secondDigit, digitIndex: _ } = findLargestDigit(digits.slice(digitIndex+1));
+    const { largestDigit: secondDigit, digitIndex: _ } = findLargestDigit(
+        digits.slice(digitIndex + 1),
+    );
 
     const joltage = parseInt(largestDigit + secondDigit);
     sum += joltage;
@@ -47,8 +49,10 @@ for (const bank of banks) {
     let joltageDigits = "";
 
     for (let i = 0; i < 12; i++) {
-         // we don't want to consider the last ~i digits, because we can't pick enough following digits
-        const { largestDigit, digitIndex } = findLargestDigit(digits.slice(startingIndex, digits.length - 11 + i));
+        // we don't want to consider the last ~i digits, because we can't pick enough following digits
+        const { largestDigit, digitIndex } = findLargestDigit(
+            digits.slice(startingIndex, digits.length - 11 + i),
+        );
 
         startingIndex += digitIndex + 1;
         joltageDigits += largestDigit;
