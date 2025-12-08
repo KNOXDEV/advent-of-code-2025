@@ -10,10 +10,7 @@ function parseInput(input: string): Problems {
         line.trim().split(" ").filter((val) => val)
     );
 
-    // transpose
-    const transposedVals = vals[0].map((_, col) => vals.map((row) => row[col]));
-
-    return transposedVals.map((problem) => ({
+    return transpose(vals).map((problem) => ({
         op: problem.pop()!,
         numbers: problem.map((num) => parseInt(num)),
     }));
