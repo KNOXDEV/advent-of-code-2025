@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --allow-read=./.inputs/
-import { assertEq, getInputCached, slidingWindow, transpose } from "./common.ts";
+import { assertEq, getInputCached, slidingWindow, sum, transpose } from "./common.ts";
 
 // part 1
 
@@ -33,7 +33,7 @@ function simulateManifold(manifold: Manifold): Manifold {
 
 function countSplits(manifold: Manifold): number {
     // count beams entering splitters
-    return transpose(manifold).reduce((accum, row) => accum + row.join("").matchAll(/\|\^/g).toArray().length, 0);
+    return manifold.ext(transpose).map((row) => row.join("").matchAll(/\|\^/g).toArray().length).ext(sum);
 }
 
 // part 1 example
@@ -185,3 +185,7 @@ assertEq(40, exampleTimelineCount);
 const { graph, rootNodeLabel } = parseGraph(simulated);
 const timelineCount = countTimelines(graph, rootNodeLabel);
 console.log("number of timelines (part 2) is", timelineCount);
+
+/// I think the main takeaway here is that I made the solution more complicated than it needed to be,
+/// specifically with regards to not being able to confine the solution to a simple 1-dimensional 
+/// solution, and maintaining state for the entire grid. 
