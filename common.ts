@@ -104,6 +104,96 @@ export function groupBy<T>(iter: Iterable<T>, fn: (item: T, idx: number) => stri
     }, new Map<string, Array<T>>());
 }
 
+/// somewhat niche data structures
+
+export class DiGraph<T> {
+    mapping: Map<string, { element: T, pointingTo: Set<string> }>;
+    keyFunc: (element: T) => string;
+
+    constructor(keyFunc: (element: T) => string) {
+        this.mapping = new Map();
+        this.keyFunc = keyFunc;
+    }
+
+    private getSourceNodeKeys(): Set<string> {
+        const allNodes = new Set(this.mapping.keys());
+        const pointedToNodes = new Set(this.mapping.values().flatMap(({pointingTo}) => pointingTo));
+        return allNodes.difference(pointedToNodes);
+    }
+
+    /*
+     * Get all Nodes that are NOT pointed to, basically.
+     */
+    getSourceNodes(): IteratorObject<T> {
+        return this.getSourceNodeKeys().values().map((key) => this.mapping.get(key)!.element);
+    }
+
+    /**
+     * Get all the Nodes that don't point to anything, basically.
+     */
+    getSinkNodeKeys(): IteratorObject<string> {
+        return this.mapping.entries().filter(([,entry]) => entry.pointingTo.size === 0).map(([key,]) => key);
+    }
+
+    upsertNode(node: T, ...pointingTo: T[]) {
+        const key = this.keyFunc(node);
+        const entry = this.mapping.get(key) || { element: node, pointingTo: new Set() };
+
+        // make sure pointed to nodes are preinserted
+        for (const childNode of pointingTo) {
+            const childKey = this.keyFunc(childNode);
+
+            this.upsertNode(childNode);
+            entry.pointingTo.add(childKey);
+        }
+
+        // insert the updated (or new) entry
+        this.mapping.set(key, entry);
+    }
+
+    /**
+     * Breadth-first search starting at the source nodes, but only over the keys/string labels
+     * Should visit everything even if the graph is not fully connected or a DAG.
+     * @param vistor 
+     */
+    bfsKeys(vistor: (node: string, pointingTo: Set<string>) => void) {
+        const nodesToVisit = Array.from(this.getSourceNodeKeys());
+        const visited = new Set();
+
+        while (nodesToVisit.length > 0) {
+            const nodeKey = nodesToVisit.shift()!;
+            const entry = this.mapping.get(nodeKey)!;
+
+            vistor(nodeKey, entry.pointingTo);
+            for (const childNode of entry.pointingTo) {
+                if (visited.has(childNode))
+                    continue;
+                visited.add(childNode);
+                nodesToVisit.push(childNode);
+            }
+        }
+    }
+
+    /**
+     * Count the number of distinct paths from the source nodes to the sink nodes.
+     */
+    countDistinctPaths() {
+        const counts: { [key: string]: number } = {};
+
+        this.bfsKeys((node, pointingTo) => {
+            // root nodes start at 1
+            counts[node] = counts[node] ?? 1;
+
+            // edges start at zero, but you should also add the count of the current parent
+            for (const edge of pointingTo)
+                counts[edge] = (counts[edge] ?? 0) + counts[node];
+        });
+
+        // add up the final counts at all the "sink nodes"
+        return this.getSinkNodeKeys().map(key => counts[key]).reduce((accum, curr) => accum + curr, 0);
+    }
+}
+
 export class DisjointSets<T> implements Iterable<Set<T>> {
 
     mapping: Map<string, { element: T; sentinalKey: string; }>;
@@ -111,7 +201,7 @@ export class DisjointSets<T> implements Iterable<Set<T>> {
     keyFunc: (element: T) => string;
 
     constructor(keyFunc: (element: T) => string) {
-        this.mapping = new Map<string, { element: T, sentinalKey: string }>();
+        this.mapping = new Map();
         this.keyFunc = keyFunc;
         this.setCount = 0;
     }
