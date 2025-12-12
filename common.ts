@@ -107,11 +107,13 @@ export function groupBy<T>(iter: Iterable<T>, fn: (item: T, idx: number) => stri
 export class DisjointSets<T> implements Iterable<Set<T>> {
 
     mapping: Map<string, { element: T; sentinalKey: string; }>;
+    setCount: number;
     keyFunc: (element: T) => string;
 
     constructor(keyFunc: (element: T) => string) {
         this.mapping = new Map<string, { element: T, sentinalKey: string }>();
         this.keyFunc = keyFunc;
+        this.setCount = 0;
     }
 
     // iterate over each distinct set
@@ -127,6 +129,7 @@ export class DisjointSets<T> implements Iterable<Set<T>> {
         const sentinalKey = this.keyFunc(elements[0]);
         for (const element of elements)
             this.mapping.set(this.keyFunc(element), { element, sentinalKey });
+        this.setCount++;
     }
 
     private find(key: string): { element: T, sentinalKey: string } {
@@ -152,6 +155,7 @@ export class DisjointSets<T> implements Iterable<Set<T>> {
         // otherwise, join them (not the most efficient but whatever)
         const sentinalElement = this.mapping.get(resultA.sentinalKey)!;
         this.mapping.set(resultA.sentinalKey, { ...sentinalElement, sentinalKey: resultB.sentinalKey });
+        this.setCount--;
         return true;
     }
 }

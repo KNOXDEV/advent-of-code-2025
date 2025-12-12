@@ -91,7 +91,7 @@ function joinUntilConnected(points: Point[]): Point[] {
         disjointSets.union(a, b);
 
         // return the final pair
-        if(disjointSets.getSets().length === 1)
+        if(disjointSets.setCount === 1)
             return [a, b];
     }
 
