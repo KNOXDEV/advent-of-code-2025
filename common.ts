@@ -63,14 +63,34 @@ export function product<T>(iter: Iterable<T>, by: (item: T, idx: number) => numb
     return Iterator.from(iter).reduce((accum, item, idx) => accum * by(item, idx), init);
 }
 
+/**
+ * sort function with a not-terrible default behavior
+ */
+export function sort<T>(arr: T[], by: (a: T, b: T) => number = (a, b) => Number(a) - Number(b)): T[] {
+    return arr.toSorted(by);
+}
+
 export function unique<T>(iter: Iterable<T>): Set<T> {
     return new Set(iter);
+}
+
+/**
+ * @param iter 
+ * @param by 
+ * @returns null if the iterator was empty. otherwise, the largest element according to the provided comparator
+ */
+export function max<T>(iter: Iterable<T>, by: (a: T, b: T) => number = (a, b) => Number(a) - Number(b)): T | null {
+    const iterator = Iterator.from(iter);
+    const init = iterator.next();
+    if (init.done) return null;
+    return iterator.reduce((max, curr) => by(curr, max) >= 0 ? curr : max, init.value);
 }
 
 export function identity<T>(x: T): T {
     return x;
 }
 
+// basically just a parseInt function that doesn't accept a radix, which makes it more usable in certain contexts
 export function int(x: string): number {
     return parseInt(x);
 }
@@ -80,9 +100,17 @@ export function truthy<T>(iter: Iterable<T>): IteratorObject<T> {
 }
 
 // iterate over a sliding window view of the provided array
-export function* slidingWindow<T>(arr: T[], windowSize: number) {
+export function* slidingWindow<T>(arr: T[], windowSize: number, options: { wrap?: boolean } = {}) {
+    const { wrap = false } = options;
     for (let i = 0; i + windowSize <= arr.length; i++) {
         yield arr.slice(i, i + windowSize);
+    }
+
+    if(!wrap) return;
+
+    // if we're wrapping, yield the last elements of the array combined with elements from the front
+    for (let i = 1; i < windowSize; i++) {
+        yield [...arr.slice(i-windowSize), ...arr.slice(0, i)]
     }
 }
 
@@ -302,10 +330,21 @@ declare global {
          */
         ext<ReturnType, ArgsType extends unknown[]>(fn: (arr: Array<T>, ...args: ArgsType) => ReturnType, ...args: ArgsType): ReturnType;
     }
+    interface IteratorObject<T> {
+        ext<ReturnType, ArgsType extends unknown[]>(fn: (iter: Iterable<T>, ...args: ArgsType) => ReturnType, ...args: ArgsType): ReturnType;
+    }
 }
 
 if (!Array.prototype.ext) {
+    // somehow this typechecks
     Array.prototype.ext = function <T, ReturnType, ArgsType extends unknown[]>(this: Array<T>, fn: (arr: Array<T>, ...args: ArgsType) => ReturnType, ...args: ArgsType): ReturnType {
+        return fn(this, ...args);
+    }
+}
+
+if (!Iterator.prototype.ext) {
+    // somehow this typechecks
+    Iterator.prototype.ext = function <T, ReturnType, ArgsType extends unknown[]>(this: Iterable<T>, fn: (iter: Iterable<T>, ...args: ArgsType) => ReturnType, ...args: ArgsType): ReturnType {
         return fn(this, ...args);
     }
 }
